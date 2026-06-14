@@ -14,13 +14,13 @@ A companion `code` command extracts the full contents of a hand-picked set of fi
 Install globally from npm:
 
 ```bash
-npm install -g codetree
+npm install -g @blackcoffee2/codetree
 ```
 
 For local development:
 
 ```bash
-git clone <repository>
+git clone https://github.com/blackcoffee2/codetree
 cd codetree
 npm install
 npm run build
