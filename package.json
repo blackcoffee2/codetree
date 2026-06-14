@@ -1,0 +1,49 @@
+{
+  "name": "codetree",
+  "version": "0.1.0",
+  "description": "A CLI tool that uses Tree-sitter to index codebases and generate structured snapshots",
+  "main": "dist/index.js",
+  "bin": {
+    "codetree": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --build",
+    "dev": "ts-node src/cli.ts",
+    "start": "node dist/cli.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run tests/unit",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "tree-sitter",
+    "code-analysis",
+    "cli",
+    "codebase",
+    "indexing"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "clipboardy": "^5.3.1",
+    "commander": "^11.1.0",
+    "globby": "^11.1.0",
+    "ora": "^5.4.1",
+    "tree-sitter-wasms": "^0.1.13",
+    "web-tree-sitter": "^0.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@vitest/coverage-v8": "^4.1.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.3.0",
+    "vitest": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
