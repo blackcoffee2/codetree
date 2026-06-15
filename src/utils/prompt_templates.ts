@@ -22,7 +22,7 @@
  * code prompts, which differ only in the task wrapped around this description.
  */
 const COMPACT_FORMAT_DESCRIPTION: string[] = [
-  "The codebasse snapshot is a compact structural index, not full source code. Its layout is:",
+  "The codebase snapshot is a compact structural index, not full source code. Its layout is:",
   "",
   "- The first line is a project header: the project name followed by the total file and line counts.",
   "- The second line is the language distribution, where each entry is an abbreviated language and its file count (for example, `ts:15 js:1`).",

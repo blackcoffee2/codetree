@@ -16,7 +16,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:unit": "vitest run tests/unit",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "pnpm build"
   },
   "keywords": [
     "tree-sitter",
@@ -25,8 +26,15 @@
     "codebase",
     "indexing"
   ],
-  "author": "Your Name",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blackcoffee2/codetree.git"
+  },
+  "bugs": {
+    "url": "https://github.com/blackcoffee2/codetree/issues"
+  },
+  "homepage": "https://github.com/blackcoffee2/codetree#readme",
   "dependencies": {
     "chalk": "^4.1.2",
     "clipboardy": "^5.3.1",

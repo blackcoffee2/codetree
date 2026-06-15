@@ -2,6 +2,12 @@
 
 A command-line tool that uses [Tree-sitter](https://tree-sitter.github.io/tree-sitter/) to turn a codebase into a single, token-efficient snapshot you can hand to a large language model.
 
+<p align="center">
+  <img src="./docs/images/demo.png" alt="CodeTree generating a compact snapshot of a project from the command line" width="800" />
+</p>
+
+In the example above, codetree repo itself drops from ~26.5k tokens of source (103.9 KB) to under 900 tokens (3.5 KB) — about 3% of the original, while keeping a structural map of every file.
+
 CodeTree produces two kinds of snapshot:
 
 - **Compact** (default) — a structural index of the project. Each file is listed alongside the functions, classes, imports, exports, variables, and modules found in it, derived from the syntax tree. This is dramatically smaller than the source and is meant to give a model a map of the codebase.
@@ -47,9 +53,20 @@ codetree tree --format raw
 The typical workflow for using a snapshot with an LLM:
 
 1. `codetree tree` to generate the compact index (`.codetree/codetree_tree.txt`).
-2. `codetree tree prompt` to copy a short prompt that explains the snapshot's layout to the model. Paste the prompt, then the snapshot, into your LLM.
+
+2. `codetree tree prompt` to copy a short prompt that explains the snapshot's layout to the model. Paste the prompt, then the snapshot, into your LLM, and it can reason about the whole project from the compact map.
+
+<p align="center">
+  <img src="./docs/images/demo-tree-flow.png" alt="Pasting the CodeTree prompt and snapshot into an LLM, which then understands the project structure" width="800" />
+</p>
+
 3. Ask your question. When the model needs the full contents of specific files, `codetree code prompt` copies a prompt that makes it reply with a JSON array of file paths.
+
 4. Put that array into the `filesToExtract` key of `.codetree/config.json` (or pass it via `--files`), then run `codetree code` to produce `.codetree/codetree_code.txt` with the full source of just those files.
+
+<p align="center">
+  <img src="./docs/images/demo-code-flow.png" alt="An LLM responding with a JSON array of file paths for a refactor task, fed into codetree code to extract those files" width="800" />
+</p>
 
 > Run CodeTree from your project root — the directory that holds `.gitignore` and your manifest (`package.json`, `pyproject.toml`, and so on). Configuration and `.gitignore` are read from the current working directory, not from the directory being scanned, so scanning a subdirectory still uses the project's single configuration.
 
