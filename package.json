@@ -1,6 +1,6 @@
 {
   "name": "@blackcoffee2/codetree",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A CLI tool that uses Tree-sitter to index codebases and generate structured snapshots",
   "main": "dist/index.js",
   "bin": {

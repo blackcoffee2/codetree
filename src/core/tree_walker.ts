@@ -1,5 +1,41 @@
 import type { Node } from "web-tree-sitter";
 
+/**
+ * Anonymous member-body wrappers that sit between a container and its members
+ * in the various grammars.
+ *
+ * These nodes carry no information of their own - they are the "{ ... }" that
+ * holds a type's or module's members - so they are treated uniformly across
+ * all languages as not constituting a nesting level: traversal passes through
+ * them without consuming depth, and they are never emitted as symbols. Depth
+ * therefore tracks the code's logical nesting (module > type > member) rather
+ * than each grammar's incidental wrapper count, which varies by language.
+ *
+ * Statement-level blocks (block, statement_block, compound_statement) are
+ * deliberately not listed: a function body is a real nesting level, and
+ * passing through it would pull expression-level nodes into range.
+ */
+const MEMBER_BODY_NODE_TYPES = new Set([
+  // JavaScript / TypeScript / Java / Kotlin / Swift / Dart
+  "class_body",
+
+  // Java / TypeScript
+  "interface_body",
+  "enum_body",
+
+  // C# (namespace and type members) / Rust (impl and trait bodies)
+  "declaration_list",
+
+  // C# enums
+  "enum_member_declaration_list",
+
+  // C / C++ / Go struct and class bodies
+  "field_declaration_list",
+
+  // C / C++ enums
+  "enumerator_list",
+]);
+
 export class TreeWalker {
   /**
    * Extract summary using Tree-sitter's built-in capabilities
@@ -63,11 +99,15 @@ export class TreeWalker {
       }
     }
 
+    // Member-body wrappers pass their own depth on to their children so the
+    // wrapper does not consume a nesting level.
+    const childDepth = MEMBER_BODY_NODE_TYPES.has(nodeType) ? depth : depth + 1;
+
     // Recursively process children
     for (let i = 0; i < node.childCount; i++) {
       const child = node.child(i);
       if (child) {
-        this.walkForStructures(child, sourceCode, info, depth + 1);
+        this.walkForStructures(child, sourceCode, info, childDepth);
       }
     }
   }
@@ -93,7 +133,11 @@ export class TreeWalker {
       "comment",
     ];
 
-    return genericTypes.includes(nodeType);
+    // Member-body wrappers are pure structure with no name of their own, so
+    // they are never emitted as symbol lines either.
+    return (
+      genericTypes.includes(nodeType) || MEMBER_BODY_NODE_TYPES.has(nodeType)
+    );
   }
 
   /**
@@ -121,6 +165,10 @@ export class TreeWalker {
       "import",
       "export",
       "use",
+      // "using" is listed separately because it does not contain "use" as a
+      // substring, so node types like using_directive would otherwise never
+      // match.
+      "using",
       "include",
       "require",
 

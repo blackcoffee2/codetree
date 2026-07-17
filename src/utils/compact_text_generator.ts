@@ -158,8 +158,15 @@ export class CompactTextGenerator {
     const nodeType = parts[0].trim();
     const nodeContent = parts.slice(1).join(":").trim();
 
-    // Determine symbol type and extract name
-    if (nodeType.includes("function") || nodeType.includes("method")) {
+    // Determine symbol type and extract name. Constructor node types are
+    // grouped with functions so they render as methods of their class rather
+    // than falling through to the variable branch below via their
+    // "declaration" suffix.
+    if (
+      nodeType.includes("function") ||
+      nodeType.includes("method") ||
+      nodeType.includes("constructor")
+    ) {
       const name = this.extractFunctionName(nodeContent);
       return name ? { type: "fn", name } : null;
     }
@@ -168,15 +175,21 @@ export class CompactTextGenerator {
       nodeType.includes("class") ||
       nodeType.includes("interface") ||
       nodeType.includes("struct") ||
-      nodeType.includes("enum")
+      nodeType.includes("enum") ||
+      nodeType.includes("record")
     ) {
       const name = this.extractTypeName(nodeContent);
       return name ? { type: "cls", name } : null;
     }
 
+    // "use" covers node types like use_declaration; "using" is checked
+    // separately because it does not contain "use" as a substring, so node
+    // types like using_directive would otherwise fall through to the variable
+    // branch or be dropped.
     if (
       nodeType.includes("import") ||
       nodeType.includes("use") ||
+      nodeType.includes("using") ||
       nodeType.includes("require")
     ) {
       const name = this.extractImportName(nodeContent);
@@ -188,6 +201,14 @@ export class CompactTextGenerator {
       return name ? { type: "exp", name } : null;
     }
 
+    // Modules and namespaces are checked before the variable branch because
+    // node types like namespace_declaration also contain "declaration" and
+    // would otherwise be misclassified as variables.
+    if (nodeType.includes("module") || nodeType.includes("namespace")) {
+      const name = this.extractModuleName(nodeContent);
+      return name ? { type: "mod", name } : null;
+    }
+
     if (
       nodeType.includes("variable") ||
       nodeType.includes("declaration") ||
@@ -196,11 +217,6 @@ export class CompactTextGenerator {
     ) {
       const name = this.extractVariableName(nodeContent);
       return name ? { type: "var", name } : null;
-    }
-
-    if (nodeType.includes("module") || nodeType.includes("namespace")) {
-      const name = this.extractModuleName(nodeContent);
-      return name ? { type: "mod", name } : null;
     }
 
     return null;
@@ -227,7 +243,7 @@ export class CompactTextGenerator {
 
   private static extractTypeName(content: string): string | null {
     const patterns = [
-      /(?:class|interface|struct|enum|type)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/,
+      /(?:class|interface|struct|enum|type|record)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/,
       /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*{/,
       /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=/,
     ];
@@ -248,6 +264,13 @@ export class CompactTextGenerator {
       /from\s+['"]([^'"]+)['"]/,
       /import\s+['"]([^'"]+)['"]/,
       /require\s*\(\s*['"]([^'"]+)['"]\s*\)/,
+      // Using directives and declarations, in the same spirit as the
+      // from/import/require patterns above. Optional modifier keywords are
+      // skipped so the imported name itself is captured; for aliases the alias
+      // name is captured, which is the name the code actually refers to.
+      // Dotted names are kept whole because a trailing segment alone is
+      // meaningless.
+      /(?:global\s+)?using\s+(?:static\s+)?(?:namespace\s+)?([A-Za-z_][A-Za-z0-9_.]*)/,
       /import\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/,
       /import\s*{\s*([^}]+)\s*}/,
     ];
@@ -288,6 +311,10 @@ export class CompactTextGenerator {
       /(?:const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/,
       /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=/,
       /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/,
+      // Declarations whose name sits immediately before a braced body, such as
+      // property accessors or struct definitions. Placed last so the
+      // assignment and type-annotation patterns keep precedence.
+      /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\{/,
     ];
 
     for (const pattern of patterns) {
@@ -462,6 +489,7 @@ export class CompactTextGenerator {
       rust: "rs",
       cpp: "cpp",
       c: "c",
+      csharp: "cs",
       dart: "dart",
       swift: "swift",
     };

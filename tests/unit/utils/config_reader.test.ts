@@ -1,8 +1,25 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "fs";
 import os from "os";
 import path from "path";
 import { ConfigReader } from "@/utils/config_reader";
+
+// The logger writes through the global console, and this suite deliberately
+// exercises paths that log by design: first-run creation announces the config
+// and gitignore it writes, and the failure-path tests trigger warnings for an
+// invalid outputFormat and malformed JSON. Vitest echoes anything printed
+// during a test, so the console is silenced for the whole file to keep the
+// test output clean. The mocks are restored after each test so no other file
+// is affected.
+beforeEach(() => {
+  vi.spyOn(console, "log").mockImplementation(() => {});
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+  vi.spyOn(console, "error").mockImplementation(() => {});
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("ConfigReader.getDefaultConfig", () => {
   it("starts with an empty user exclude list and compact format", () => {

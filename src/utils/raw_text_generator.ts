@@ -71,6 +71,7 @@ export class RawTextGenerator {
       rust: "rs",
       cpp: "cpp",
       c: "c",
+      csharp: "cs",
       dart: "dart",
       swift: "swift",
     };

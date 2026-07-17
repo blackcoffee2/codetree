@@ -521,6 +521,7 @@ program
       "Rust (.rs)",
       "C++ (.cpp, .cc, .cxx, .hpp, .hxx, .hh)",
       "C (.c, .h)",
+      "C# (.cs, .csx)",
       "Dart (.dart)",
       "Swift (.swift)",
     ];

@@ -82,6 +82,16 @@ const LANGUAGE_FIXTURES: Array<{
     expectedIdentifier: "subtract",
   },
   {
+    language: "csharp",
+    // The block-scoped namespace stacks the most member-body wrappers of any
+    // supported language, and the expected identifier is the method name, so
+    // this fixture fails if the walker's wrapper-depth rule regresses and
+    // methods fall past the depth limit.
+    snippet:
+      "namespace Demo {\n  public class Calculator {\n    public int Square(int n) {\n      return n * n;\n    }\n  }\n}\n",
+    expectedIdentifier: "Square",
+  },
+  {
     language: "dart",
     snippet: "int triple(int n) {\n  return n * 3;\n}\n",
     expectedIdentifier: "triple",

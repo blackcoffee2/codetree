@@ -12,6 +12,7 @@ export type SupportedLanguage =
   | "rust"
   | "cpp"
   | "c"
+  | "csharp"
   | "dart"
   | "swift"
   | "kotlin";
@@ -23,7 +24,9 @@ export type SupportedLanguage =
  * The grammars are loaded as WebAssembly via web-tree-sitter, so there is no
  * native compilation step. Several names differ from the language key: TSX has
  * its own grammar file, and JSX reuses the JavaScript grammar (there is no
- * separate JSX grammar), mirroring the previous native setup.
+ * separate JSX grammar), mirroring the previous native setup. The C# file uses
+ * an underscore because the tree-sitter CLI names build output after the
+ * grammar's internal name, which is `c_sharp` in tree-sitter-c-sharp.
  */
 const WASM_FILE_BY_LANGUAGE: Record<SupportedLanguage, string> = {
   javascript: "tree-sitter-javascript.wasm",
@@ -36,6 +39,7 @@ const WASM_FILE_BY_LANGUAGE: Record<SupportedLanguage, string> = {
   rust: "tree-sitter-rust.wasm",
   cpp: "tree-sitter-cpp.wasm",
   c: "tree-sitter-c.wasm",
+  csharp: "tree-sitter-c_sharp.wasm",
   dart: "tree-sitter-dart.wasm",
   swift: "tree-sitter-swift.wasm",
   kotlin: "tree-sitter-kotlin.wasm",
@@ -95,6 +99,14 @@ export class LanguageDetector {
       // C
       [".c", "c"],
       [".h", "c"],
+
+      // C#
+      // .csx (C# scripting) shares the same grammar. .cshtml is deliberately
+      // absent: Razor files interleave markup with C#, so parsing them with the
+      // C# grammar would produce a misleading summary; they are better handled
+      // as plain text.
+      [".cs", "csharp"],
+      [".csx", "csharp"],
 
       // Dart
       [".dart", "dart"],

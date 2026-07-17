@@ -145,6 +145,77 @@ describe("CompactTextGenerator symbol extraction", () => {
   });
 });
 
+describe("CompactTextGenerator C# symbol extraction", () => {
+  // These summaries mirror the node types the C# grammar produces. Several of
+  // them contain "declaration" in the node type and depend on classification
+  // order to land in the right symbol group, so each is pinned here.
+
+  it("groups a constructor with methods under the class", () => {
+    const summary = [
+      "=== STRUCTURAL ELEMENTS ===",
+      "namespace_declaration: namespace Demo { (line 1)",
+      "  class_declaration: public class Calculator (line 3)",
+      "    constructor_declaration: public Calculator(int seed) (line 5)",
+      "    method_declaration: public int Add(int value) (line 8)",
+    ].join("\n");
+    const files = [makeParsedFile("calc.cs", summary, "csharp")];
+    const output = CompactTextGenerator.generate(files, "/projects/demo");
+    expect(fileLine(output, "calc.cs")).toContain(
+      "cls:Calculator(Calculator,Add)"
+    );
+  });
+
+  it("classifies a namespace declaration as mod, not var", () => {
+    const summary = [
+      "=== STRUCTURAL ELEMENTS ===",
+      "namespace_declaration: namespace Demo.App { (line 1)",
+    ].join("\n");
+    const files = [makeParsedFile("ns.cs", summary, "csharp")];
+    const output = CompactTextGenerator.generate(files, "/projects/demo");
+    const line = fileLine(output, "ns.cs");
+    expect(line).toContain("mod:Demo.App");
+    expect(line).not.toContain("var:");
+  });
+
+  it("extracts a using directive as an import with the dotted name kept whole", () => {
+    const summary = [
+      "=== STRUCTURAL ELEMENTS ===",
+      "using_directive: using System.Collections.Generic; (line 1)",
+    ].join("\n");
+    const files = [makeParsedFile("u.cs", summary, "csharp")];
+    const output = CompactTextGenerator.generate(files, "/projects/demo");
+    expect(fileLine(output, "u.cs")).toContain(
+      "imp:System.Collections.Generic"
+    );
+  });
+
+  it("classifies a record declaration as cls", () => {
+    const summary = [
+      "=== STRUCTURAL ELEMENTS ===",
+      "record_declaration: public record Point(int X, int Y); (line 1)",
+    ].join("\n");
+    const files = [makeParsedFile("p.cs", summary, "csharp")];
+    const output = CompactTextGenerator.generate(files, "/projects/demo");
+    expect(fileLine(output, "p.cs")).toContain("cls:Point");
+  });
+
+  it("extracts an auto-property name as a variable", () => {
+    const summary = [
+      "=== STRUCTURAL ELEMENTS ===",
+      "property_declaration: public string Name { get; set; } (line 1)",
+    ].join("\n");
+    const files = [makeParsedFile("prop.cs", summary, "csharp")];
+    const output = CompactTextGenerator.generate(files, "/projects/demo");
+    expect(fileLine(output, "prop.cs")).toContain("var:Name");
+  });
+
+  it("abbreviates csharp as cs in the language distribution", () => {
+    const files = [makeParsedFile("a.cs", null, "csharp")];
+    const output = CompactTextGenerator.generate(files, "/projects/demo");
+    expect(output).toContain("cs:1");
+  });
+});
+
 describe("CompactTextGenerator directory nesting", () => {
   it("emits nested directories with trailing slashes", () => {
     const files = [makeParsedFile("src/core/a.ts", null, "typescript")];

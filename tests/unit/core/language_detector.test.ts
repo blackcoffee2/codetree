@@ -1,64 +1,60 @@
 import { describe, it, expect } from "vitest";
-import { isBinaryContent } from "@/utils/binary_detector";
+import { LanguageDetector } from "@/core/language_detector";
 
-describe("isBinaryContent", () => {
-  it("treats an empty buffer as text", () => {
-    expect(isBinaryContent(Buffer.alloc(0))).toBe(false);
+// Pure-unit coverage for extension-based detection. Nothing here loads a
+// WebAssembly grammar; getSafeParser and the wasm mappings are proven against
+// the real runtime in the integration tier (tests/integration/languages.test.ts),
+// which is the test that catches a wrong or missing grammar file name.
+
+describe("LanguageDetector.detectLanguage", () => {
+  const detector = new LanguageDetector();
+
+  it("maps common extensions to their languages", () => {
+    expect(detector.detectLanguage("src/app.ts")).toBe("typescript");
+    expect(detector.detectLanguage("src/app.tsx")).toBe("tsx");
+    expect(detector.detectLanguage("src/app.js")).toBe("javascript");
+    expect(detector.detectLanguage("main.py")).toBe("python");
+    expect(detector.detectLanguage("main.go")).toBe("go");
+    expect(detector.detectLanguage("lib.rs")).toBe("rust");
   });
 
-  it("treats plain ASCII text as text", () => {
-    const buffer = Buffer.from("const x = 1;\nconst y = 2;\n", "utf-8");
-    expect(isBinaryContent(buffer)).toBe(false);
+  it("maps .cs and .csx to csharp", () => {
+    expect(detector.detectLanguage("src/Program.cs")).toBe("csharp");
+    expect(detector.detectLanguage("scripts/build.csx")).toBe("csharp");
   });
 
-  it("treats UTF-8 multibyte content as text", () => {
-    // Bytes >= 128 are part of multibyte UTF-8 sequences and must count as text
-    // so that non-ASCII source files are not misclassified as binary.
-    const buffer = Buffer.from("const greeting = 'こんにちは';", "utf-8");
-    expect(isBinaryContent(buffer)).toBe(false);
+  it("matches extensions case-insensitively", () => {
+    expect(detector.detectLanguage("Program.CS")).toBe("csharp");
+    expect(detector.detectLanguage("App.TS")).toBe("typescript");
   });
 
-  it("treats common whitespace control bytes as text", () => {
-    // Tab, line feed, form feed, and carriage return are the control bytes the
-    // detector explicitly allows.
-    const buffer = Buffer.from([0x09, 0x0a, 0x0c, 0x0d, 0x41, 0x42]);
-    expect(isBinaryContent(buffer)).toBe(false);
+  it("does not treat Razor files as C#", () => {
+    // .cshtml interleaves markup with C#, so it is deliberately left without a
+    // grammar and falls back to plain-text handling.
+    expect(detector.detectLanguage("Views/Index.cshtml")).toBeNull();
   });
 
-  it("classifies a buffer containing a NUL byte as binary", () => {
-    // A NUL byte is the definitive binary signal; a single occurrence is enough
-    // even amid otherwise printable bytes.
-    const buffer = Buffer.from([0x41, 0x42, 0x00, 0x43]);
-    expect(isBinaryContent(buffer)).toBe(true);
+  it("returns null for unknown extensions and extensionless paths", () => {
+    expect(detector.detectLanguage("notes.xyz")).toBeNull();
+    expect(detector.detectLanguage("Makefile")).toBeNull();
+  });
+});
+
+describe("LanguageDetector supported sets", () => {
+  const detector = new LanguageDetector();
+
+  it("reports csharp among the supported languages", () => {
+    expect(detector.getSupportedLanguages()).toContain("csharp");
   });
 
-  it("classifies content above the non-text ratio as binary", () => {
-    // No NUL byte present, but more than thirty percent of the bytes fall in the
-    // disallowed control range, which crosses the threshold.
-    const bytes: number[] = [];
-    for (let i = 0; i < 100; i++) {
-      // 0x01 is a control byte outside the allowed whitespace set.
-      bytes.push(i < 40 ? 0x01 : 0x41);
-    }
-    expect(isBinaryContent(Buffer.from(bytes))).toBe(true);
+  it("reports .cs and .csx among the supported extensions", () => {
+    const extensions = detector.getSupportedExtensions();
+    expect(extensions).toContain(".cs");
+    expect(extensions).toContain(".csx");
   });
 
-  it("tolerates a small number of stray control bytes in text", () => {
-    // A handful of control bytes below the threshold should not flip an
-    // otherwise-textual file to binary.
-    const bytes: number[] = [];
-    for (let i = 0; i < 100; i++) {
-      bytes.push(i < 5 ? 0x01 : 0x41);
-    }
-    expect(isBinaryContent(Buffer.from(bytes))).toBe(false);
-  });
-
-  it("inspects only the leading sample of a large buffer", () => {
-    // Bytes beyond the inspected sample window must not influence the result, so
-    // a long run of text followed by binary past the window stays classified as
-    // text.
-    const head = Buffer.alloc(8192, 0x41);
-    const tail = Buffer.alloc(100, 0x00);
-    expect(isBinaryContent(Buffer.concat([head, tail]))).toBe(false);
+  it("answers isSupported from the extension mapping", () => {
+    expect(detector.isSupported("src/Program.cs")).toBe(true);
+    expect(detector.isSupported("readme.txt")).toBe(false);
   });
 });
